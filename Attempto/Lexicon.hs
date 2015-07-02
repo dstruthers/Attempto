@@ -3,6 +3,7 @@
 module Attempto.Lexicon where
 import Control.Applicative ((<|>))
 import Data.Attoparsec.ByteString.Char8
+import Data.Attoparsec.Combinator (sepBy)
 import Data.ByteString.Internal (ByteString)
 
 -- See: http://attempto.ifi.uzh.ch/site/resources/
@@ -62,7 +63,7 @@ separator = whitespace >> char ',' >> whitespace
 parseACEForm :: Parser String
 parseACEForm = do
   quote <- option "" $ string "'"
-  form <- many1 $ satisfy $ inClass "a-zA-Z0-9-_$°"
+  form <- many' $ satisfy $ inClass "a-zA-Z0-9-_$°"
   string quote
   return form
 
@@ -116,7 +117,7 @@ parseNounWithGender fn constructor = do
   whitespace
   string ")."
   return $ constructor form logical gender
-  
+
 parseLexEntry :: Parser WordClass
 parseLexEntry =
       parse2PartEntry     "adv"          Adverb
@@ -146,3 +147,11 @@ parseLexEntry =
   <|> parse3PartEntry     "dv_infpl"     InfDitransVerb
   <|> parse3PartEntry     "dv_pp"        PastParticipleDitransVerb
   <|> parse2PartEntry     "prep"         Preposition
+
+parseLexicon :: Parser Lexicon
+parseLexicon = do
+  entries <- parseLexEntry `sepBy` (char '\n')
+  return entries
+
+loadLexicon :: ByteString -> Either String Lexicon
+loadLexicon = parseOnly parseLexicon
